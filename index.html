@@ -166,47 +166,50 @@
         }
 
         async function generateAdvancedAIContent() {
-            const titleInput = document.getElementById('title');
-            const bannerInput = document.getElementById('bannerUrl');
-            const tone = document.getElementById('aiTone').value;
-            const style = document.getElementById('aiArtStyle').value;
+    const titleInput = document.getElementById('title');
+    const bannerInput = document.getElementById('bannerUrl');
+    const tone = document.getElementById('aiTone').value;
+    const style = document.getElementById('aiArtStyle').value;
 
-            let userBaseText = titleInput.value.trim();
-            if (!userBaseText) {
-                userBaseText = "آموزش کسب و کار دیجیتال";
-                titleInput.value = userBaseText;
-            }
+    let userBaseText = titleInput.value.trim();
+    if (!userBaseText) {
+        userBaseText = "آموزش کسب و کار دیجیتال";
+        titleInput.value = userBaseText;
+    }
 
-            if (aiBanners[style]) {
-                bannerInput.value = aiBanners[style];
-            }
+    if (aiBanners[style]) {
+        bannerInput.value = aiBanners[style];
+    }
 
-            try {
-                const response = await fetch('/generate-ad', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        title: userBaseText,
-                        tone: tone
-                    })
-                });
+    try {
+        // مسیر آدرس اصلاح شد به /api/generate-campaign
+        const response = await fetch('/api/generate-campaign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: userBaseText,
+                tone: tone,
+                style: style // پارامتر style اضافه شد
+            })
+        });
 
-                const data = await response.json();
+        const data = await response.json();
 
-                if (data.text) {
-                    titleInput.value = data.text;
-                } else {
-                    alert('خطا در دریافت پاسخ از هوش مصنوعی');
-                }
-            } catch (error) {
-                console.error(error);
-                alert('ارتباط با سرور برقرار نشد.');
-            }
-
-            updatePreview();
+        if (data.success && data.text) {
+            titleInput.value = data.text;
+        } else {
+            alert('خطا در دریافت پاسخ از هوش مصنوعی: ' + (data.error || 'خطای ناشناس'));
         }
+    } catch (error) {
+        console.error(error);
+        alert('ارتباط با سرور برقرار نشد.');
+    }
+
+    updatePreview();
+}
+
     </script>
 <script>
     // تست نهایی برای اطمینان از سلامت دکمه

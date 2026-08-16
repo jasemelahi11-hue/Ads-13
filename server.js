@@ -13,7 +13,7 @@ app.use(express.static('.'));
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // اتصال به دیتابیس MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI || 'mongodb+srv://jasemelahi11_db_user:13691369Aa@ac-xxxx.mongodb.net/?retryWrites=true&w=majority')
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB Atlas successfully!'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
@@ -307,7 +307,7 @@ app.post('/api/admin/campaigns/:id/status', async (req, res) => {
         res.status(500).json({ error: 'خطا در به‌روزرسانی وضعیت کمپین.' });
     }
 });
-// مسیر اصلی دریافت اطلاعات از فرانت‌اند و ارسال به جمینی
+// مسیر اصلاح شده و هماهنگ با فرانت‌اند
 app.post('/api/generate-campaign', async (req, res) => {
   try {
     const { title, tone, style } = req.body;
@@ -316,14 +316,13 @@ app.post('/api/generate-campaign', async (req, res) => {
       return res.status(400).json({ error: 'لطفاً عنوان یا موضوع کمپین را وارد کنید.' });
     }
 
-    // انتخاب سریع‌ترین مدل متنی جمینی
+    // استفاده از مدل flash که سریع است
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // ساخت یک پرامپت هوشمند بر اساس فیلدهای انتخابی کاربر
-    const prompt = `تو یک متخصص تبلیغات آنلاین و کپی‌رایتر حرفه‌ای هستی. 
-    یک متن تبلیغاتی جذاب، ترغیب‌کننده و کوتاه برای کمپینی با موضوع "${title}" بنویس.
-    لحن متن باید "${tone}" باشد و برای سبک گرافیکی "${style}" مناسب باشد.
-    پاسخ را به صورت مستقیم و بدون توضیحات اضافه بفرست.`;
+    const prompt = `تو یک متخصص تبلیغات آنلاین هستی. 
+    یک متن تبلیغاتی جذاب برای "${title}" بنویس.
+    لحن متن باید "${tone}" باشد و با سبک گرافیکی "${style}" هماهنگ باشد.
+    فقط متن تبلیغاتی را برگردان.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -333,10 +332,9 @@ app.post('/api/generate-campaign', async (req, res) => {
 
   } catch (error) {
     console.error('Gemini API Error:', error);
-    res.status(500).json({ error: 'خطا در ارتباط با هوش مصنوعی جمینی رخ داده است.' });
+    res.status(500).json({ error: 'خطا در هوش مصنوعی جمینی.' });
   }
 });
-
 // راه‌اندازی سرور روی پورت ۳۰۰۰
 const PORT = 3000;
 app.listen(PORT, () => {
