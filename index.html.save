@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdNetwork Pro - پلتفرم هوشمند تبلیغات با هوش مصنوعی جمینی</title>
+    <!-- بارگذاری فریم‌ورک Tailwind CSS و آیکون‌ها -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen p-6">
+
+    <!-- هدر پلتفرم -->
+    <header class="max-w-6xl mx-auto mb-8 flex justify-between items-center border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-600/30">
+                <i class="fa-solid fa-bullhorn text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">AdNetwork Pro</h1>
+                <p class="text-[11px] text-slate-400">سیستم پیشرفته تبلیغات آنلاین و هوش مصنوعی جمینی (Gemini)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> سیستم فعال (جمینی)
+            </span>
+        </div>
+    </header>
+
+    <!-- بدنه اصلی پلتفرم -->
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- ستون اول: پنل تنظیمات کمپین و هوش مصنوعی -->
+        <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-6 rounded-2xl shadow-xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <h2 class="text-base font-bold text-indigo-400 flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> ایجاد کمپین هوشمند جمینی
+                </h2>
+                <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md">مرحله اول</span>
+            </div>
+
+            <div class="space-y-4">
+                <!-- فیلد عنوان -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1.5">عنوان یا موضوع کمپین</label>
+                    <input type="text" id="title" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition" placeholder="مثلاً: آموزش روش‌های نوین کسب درآمد..." oninput="updatePreview()">
+                </div>
+
+                <!-- بخش موتور هوش مصنوعی (AI Creator) -->
+                <div class="bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-950 border border-indigo-500/30 rounded-2xl p-4 space-y-3 shadow-inner">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-robot"></i> موتور مولد هوش مصنوعی جمینی
+                        </span>
+                        <span class="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full">Gemini Pro API</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">لحن متن</label>
+                            <select id="aiTone" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500">
+                                <option value="commercial">فروشگاهی و ترغیب‌کننده</option>
+                                <option value="formal">رسمی و شرکتی</option>
+                                <option value="emotional">احساسی و تاثیرگذار</option>
+                                <option value="urgent">فوری و هیجانی</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-slate-400 mb-1">سبک گرافیکی بنر</label>
+                            <select id="aiArtStyle" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-[11px] text-slate-200 focus:outline-none focus:border-indigo-500" onchange="updateImageStyle()">
+                                <option value="modern_gradient">گرادینت مدرن</option>
+                                <option value="minimal_clean">مینیمال و لوکس</option>
+                                <option value="3d_render">رندر سه‌بعدی</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="generateAdvancedAIContent()" class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white text-xs font-bold py-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+    <i class="fa-solid fa-bolt"></i> تولید خودکار متن و بنر با جمینی AI
+</button>
+
+                </div>
+
+                <!-- فیلد لینک تصویر/بنر -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1.5">لینک تصویر / بنر</label>
+                    <input type="url" id="bannerUrl" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition" placeholder="https://..." oninput="updatePreview()">
+                </div>
+
+                <!-- فیلد لینک مقصد -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1.5">لینک مقصد (Target URL)</label>
+                    <input type="url" id="targetUrl" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition" placeholder="https://...">
+                </div>
+            </div>
+        </div>
+
+        <!-- ستون دوم: پنل پیش‌نمایش زنده مدرن -->
+        <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                    <h2 class="text-base font-bold text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-eye"></i> پیش‌نمایش زنده تبلیغ
+                    </h2>
+                    <span class="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2.5 py-1 rounded-md font-bold">Live Preview</span>
+                </div>
+
+                <!-- کارت پیش‌نمایش -->
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300">
+                    <div class="relative h-48 overflow-hidden bg-slate-900">
+                        <img id="previewImg" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80" class="w-full h-full object-cover transition duration-500 hover:scale-105">
+                        <span class="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-md text-[10px] text-cyan-300 border border-slate-800 px-2.5 py-1 rounded-full font-medium">پیشنهاد ویژه جمینی</span>
+                    </div>
+                    <div class="p-5 space-y-4">
+                        <h3 id="previewTitle" class="font-bold text-sm text-slate-100 leading-relaxed">عنوان کمپین شما اینجا به صورت زنده نمایش داده می‌شود...</h3>
+                        <div class="pt-2">
+                            <button class="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2">
+                                <span>مشاهده و خرید</span>
+                                <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-800 text-center">
+                <p class="text-[11px] text-slate-500">تمامی تغییرات به صورت آنی در پیش‌نمایش اعمال می‌شوند.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const aiBanners = {
+            modern_gradient: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
+            minimal_clean: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8",
+            3d_render: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e"
+        };
+
+        // تابع تعریف‌شده برای به‌روزرسانی زنده پیش‌نمایش
+        function updatePreview() {
+            const titleVal = document.getElementById('title').value;
+            const bannerVal = document.getElementById('bannerUrl').value;
+            const previewTitle = document.getElementById('previewTitle');
+            const previewImg = document.getElementById('previewImg');
+
+            if (titleVal.trim() !== "") {
+                previewTitle.textContent = titleVal;
+            } else {
+                previewTitle.textContent = "عنوان کمپین شما اینجا به صورت زنده نمایش داده می‌شود...";
+            }
+
+            if (bannerVal.trim() !== "") {
+                previewImg.src = bannerVal;
+            }
+        }
+
+        function updateImageStyle() {
+            const style = document.getElementById('aiArtStyle').value;
+            const bannerInput = document.getElementById('bannerUrl');
+            if (aiBanners[style]) {
+                bannerInput.value = aiBanners[style];
+                updatePreview();
+            }
+        }
+
+        document.getElementById('generate-ai-btn').addEventListener('click', async (e) => {
+  e.preventDefault(); // جلوگیری از رفرش ناخواسته صفحه
+
+  // دریافت مقادیر فرم
+  const title = document.getElementById('campaign-title').value.trim();
+  const tone = document.getElementById('campaign-tone').value;
+  const style = document.getElementById('campaign-style').value;
+  const generateBtn = document.getElementById('generate-ai-btn');
+  const previewBox = document.getElementById('live-preview-text');
+
+  // بررسی خالی نبودن عنوان
+  if (!title) {
+    alert('لطفاً عنوان یا موضوع کمپین را وارد کنید.');
+    return;
+  }
+
+  // تغییر ظاهر دکمه به حالت در حال بارگذاری
+  generateBtn.innerText = '⏳ در حال تولید محتوا توسط جمینی...';
+  generateBtn.disabled = true;
+  generateBtn.style.opacity = '0.6';
+  previewBox.innerText = 'در حال پردازش و دریافت پاسخ از هوش مصنوعی...';
+
+  try {
+    // ارسال درخواست به بخش بک‌اند سرور با متد POST
+    const response = await fetch('/api/generate-campaign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title, tone, style })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // قرار دادن متن تولید شده در باکس پیش‌نمایش زنده روی صفحه
+      previewBox.innerText = data.text;
+    } else {
+      previewBox.innerText = 'خطایی رخ داد.';
+      alert('خطا از سمت سرور: ' + (data.error || 'ناشناخته'));
+    }
+
+  } catch (error) {
+    console.error('Fetch Error:', error);
+    previewBox.innerText = 'اتصال به سرور برقرار نشد.';
+    alert('اتصال به سرور برقرار نشد. مطمئن شوید سرور ترمکس روشن است.');
+  } finally {
+    // بازگرداندن دکمه به حالت عادی پس از اتمام فرآیند
+    generateBtn.innerText = '⚡ تولید خودکار متن و بنر با جمینی AI';
+    generateBtn.disabled = false;
+    generateBtn.style.opacity = '1';
+  }
+});
+    </script>
+<script>
+    // تست نهایی برای اطمینان از سلامت دکمه
+    function testButton() {
+        alert("دکمه به درستی کار می‌کند! مشکل از ارتباط با سرور است.");
+    }
+</script>
+
+</body>
+</html>
+
