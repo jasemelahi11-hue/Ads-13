@@ -292,21 +292,35 @@ async function startApp() {
         // ==========================================
         // ۹. هوش مصنوعی: تولید متن (Gemini) و بنر (SVG Generator)
         // ==========================================
-        app.post('/api/ai/generate-text', async (req, res) => {
-            try {
-                const { topic, tone } = req.body;
-                if (!topic) return res.status(400).json({ error: 'موضوع تبلیغ را وارد کنید.' });
+        async function generateTextWithGroq(topic, tone) {
+    const apiKey = process.env.GROQ_API_KEY;
+    
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+                {
+                    role: "system",
+                    content: "تو یک متخصص بازاریابی و تبلیغات هستی."
+                },
+                {
+                    role: "user",
+                    content: `یک متن تبلیغاتی کوتاه، جذاب و حداکثر ۱۰ کلمه‌ای برای موضوع "${topic}" با لحن "${tone || 'جذاب'}" بنویس.`
+                }
+            ],
+            temperature: 0.7
+        })
+    });
 
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                const prompt = `یک متن تبلیغاتی کوتاه، جذاب و حداکثر ۱۰ کلمه‌ای برای موضوع "${topic}" با لحن "${tone || 'جذاب'}" بنویس. فقط خود متن را بفرست.`;
-                
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                res.json({ success: true, text: response.text().trim() });
-            } catch (error) {
-                res.status(500).json({ error: 'خطا در ارتباط با هوش مصنوعی Gemini.' });
-            }
-        });
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+}
+
 
         app.post('/api/ai/generate-banner', (req, res) => {
             try {

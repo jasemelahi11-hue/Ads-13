@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سازنده هوشمند متن‌های تبلیغاتی</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        <div class="text-center mb-8">
+            <span class="bg-indigo-500/10 text-indigo-400 text-xs font-semibold px-3 py-1 rounded-full border border-indigo-500/20">هوش مصنوعی گروک (Groq)</span>
+            <h1 class="text-2xl md:text-3xl font-bold mt-3 text-white">سازنده متن تبلیغاتی</h1>
+            <p class="text-slate-400 text-sm mt-2">موضوع محصول یا کسب‌وکار خود را وارد کنید تا بهترین متن تبلیغاتی را بگیرید.</p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">موضوع یا محصول:</label>
+                <input type="text" id="topicInput" placeholder="مثلاً: ساعت هوشمند ورزشی" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">لحن تبلیغ:</label>
+                <select id="toneInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition">
+                    <option value="جذاب و ترغیب‌کننده">جذاب و ترغیب‌کننده</option>
+                    <option value="رسمی و حرفه‌ای">رسمی و حرفه‌ای</option>
+                    <option value="هیجانی و پرانرژی">هیجانی و پرانرژی</option>
+                    <option value="طنز و دوستانه">طنز و دوستانه</option>
+                </select>
+            </div>
+
+            <button onclick="generateAd()" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition shadow-lg shadow-indigo-600/20 cursor-pointer">
+                تولید متن تبلیغاتی
+            </button>
+        </div>
+
+        <div id="resultContainer" class="mt-8 hidden">
+            <label class="block text-sm font-medium text-slate-300 mb-2">نتیجه خروجی:</label>
+            <div class="relative bg-slate-950 border border-slate-800 rounded-xl p-4 text-emerald-400 text-sm leading-relaxed" id="resultText"></div>
+        </div>
+    </div>
+
+    <script>
+        async function generateAd() {
+            const topic = document.getElementById('topicInput').value;
+            const tone = document.getElementById('toneInput').value;
+            const btn = document.getElementById('submitBtn');
+            const resultContainer = document.getElementById('resultContainer');
+            const resultText = document.getElementById('resultText');
+
+            if (!topic) {
+                alert('لطفاً موضوع را وارد کنید.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'در حال پردازش...';
+            resultContainer.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, tone })
+                });
+
+                const data = await response.json();
+                if(data.success) {
+                    resultText.innerText = data.ad;
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    alert('خطایی رخ داد.');
+                }
+            } catch (err) {
+                alert('خطا در ارتباط با سرور');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'تولید متن تبلیغاتی';
+            }
+        }
+    </script>
+</body>
+</html>
+
