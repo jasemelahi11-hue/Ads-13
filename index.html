@@ -3,84 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سازنده هوشمند متن‌های تبلیغاتی</title>
+    <title>شبکه تبلیغات هوشمند و ضد تقلب</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
-    <style>
-        body { font-family: 'Vazirmatn', sans-serif; }
-    </style>
+    <style> body { font-family: 'Vazirmatn', sans-serif; } </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 md:p-8">
-        <div class="text-center mb-8">
-            <span class="bg-indigo-500/10 text-indigo-400 text-xs font-semibold px-3 py-1 rounded-full border border-indigo-500/20">هوش مصنوعی گروک (Groq)</span>
-            <h1 class="text-2xl md:text-3xl font-bold mt-3 text-white">سازنده متن تبلیغاتی</h1>
-            <p class="text-slate-400 text-sm mt-2">موضوع محصول یا کسب‌وکار خود را وارد کنید تا بهترین متن تبلیغاتی را بگیرید.</p>
-        </div>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-4xl mx-auto space-y-8">
+        
+        <header class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl text-center">
+            <span class="bg-blue-500/10 text-blue-400 text-xs font-semibold px-3 py-1 rounded-full border border-blue-500/20">نسخه پیشرفته با Groq AI & Anti-Fraud</span>
+            <h1 class="text-2xl md:text-3xl font-bold mt-3 text-white">پلتفرم مدیریت هوشمند تبلیغات</h1>
+            <p class="text-slate-400 text-sm mt-2">تولید متن تبلیغاتی، ساخت بنر و مدیریت کمپین‌ها با بالاترین امنیت</p>
+        </header>
 
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">موضوع یا محصول:</label>
-                <input type="text" id="topicInput" placeholder="مثلاً: ساعت هوشمند ورزشی" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-white mb-4">✨ تولید متن تبلیغاتی با هوش مصنوعی</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">موضوع محصول یا خدمت:</label>
+                    <input type="text" id="topicInput" placeholder="مثلاً: ساعت هوشمند ورزشی" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">لحن تبلیغ:</label>
+                    <select id="toneInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                        <option value="جذاب و ترغیب‌کننده">جذاب و ترغیب‌کننده</option>
+                        <option value="رسمی و حرفه‌ای">رسمی و حرفه‌ای</option>
+                        <option value="هیجانی و پرانرژی">هیجانی و پرانرژی</option>
+                    </select>
+                </div>
             </div>
+            <button onclick="generateText()" id="genBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-blue-600/20 cursor-pointer">تولید متن با هوش مصنوعی</button>
+            
+            <div id="resultBox" class="mt-4 hidden bg-slate-950 border border-slate-800 rounded-xl p-4 text-emerald-400 text-sm"></div>
+        </div>
 
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">لحن تبلیغ:</label>
-                <select id="toneInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition">
-                    <option value="جذاب و ترغیب‌کننده">جذاب و ترغیب‌کننده</option>
-                    <option value="رسمی و حرفه‌ای">رسمی و حرفه‌ای</option>
-                    <option value="هیجانی و پرانرژی">هیجانی و پرانرژی</option>
-                    <option value="طنز و دوستانه">طنز و دوستانه</option>
-                </select>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-white mb-4">🖼️ طراح بنر پویا (SVG)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">عنوان روی بنر:</label>
+                    <input type="text" id="bannerTitle" placeholder="تخفیف ویژه تابستانه" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">رنگ پس‌زمینه:</label>
+                    <input type="color" id="bannerBg" value="#2563eb" class="w-full h-11 bg-slate-950 border border-slate-800 rounded-xl px-2 cursor-pointer">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="generateBanner()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-emerald-600/20 cursor-pointer">ساخت بنر</button>
+                </div>
             </div>
-
-            <button onclick="generateAd()" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition shadow-lg shadow-indigo-600/20 cursor-pointer">
-                تولید متن تبلیغاتی
-            </button>
+            <div id="bannerPreview" class="flex justify-center mt-4"></div>
         </div>
 
-        <div id="resultContainer" class="mt-8 hidden">
-            <label class="block text-sm font-medium text-slate-300 mb-2">نتیجه خروجی:</label>
-            <div class="relative bg-slate-950 border border-slate-800 rounded-xl p-4 text-emerald-400 text-sm leading-relaxed" id="resultText"></div>
-        </div>
     </div>
 
     <script>
-        async function generateAd() {
+        async function generateText() {
             const topic = document.getElementById('topicInput').value;
             const tone = document.getElementById('toneInput').value;
-            const btn = document.getElementById('submitBtn');
-            const resultContainer = document.getElementById('resultContainer');
-            const resultText = document.getElementById('resultText');
+            const btn = document.getElementById('genBtn');
+            const resultBox = document.getElementById('resultBox');
 
-            if (!topic) {
-                alert('لطفاً موضوع را وارد کنید.');
-                return;
-            }
+            if (!topic) { alert('لطفاً موضوع را وارد کنید.'); return; }
 
             btn.disabled = true;
             btn.innerText = 'در حال پردازش...';
-            resultContainer.classList.add('hidden');
+            resultBox.classList.add('hidden');
 
             try {
-                const response = await fetch('/api/generate', {
+                const res = await fetch('/api/ai/generate-text', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ topic, tone })
                 });
-
-                const data = await response.json();
-                if(data.success) {
-                    resultText.innerText = data.ad;
-                    resultContainer.classList.remove('hidden');
+                const data = await res.json();
+                if (data.success) {
+                    resultBox.innerText = data.ad;
+                    resultBox.classList.remove('hidden');
                 } else {
-                    alert('خطایی رخ داد.');
+                    alert('خطا در تولید متن');
                 }
             } catch (err) {
                 alert('خطا در ارتباط با سرور');
             } finally {
                 btn.disabled = false;
-                btn.innerText = 'تولید متن تبلیغاتی';
+                btn.innerText = 'تولید متن با هوش مصنوعی';
+            }
+        }
+
+        async function generateBanner() {
+            const title = document.getElementById('bannerTitle').value;
+            const bgColor = document.getElementById('bannerBg').value;
+            const preview = document.getElementById('bannerPreview');
+
+            try {
+                const res = await fetch('/api/ai/generate-banner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, bgColor })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    preview.innerHTML = `<img src="${data.bannerUrl}" class="rounded-xl border border-slate-800 shadow-md">`;
+                }
+            } catch (err) {
+                alert('خطا در ساخت بنر');
             }
         }
     </script>
