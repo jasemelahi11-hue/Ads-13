@@ -1,342 +1,346 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-
+const initSqlJs = require('sql.js');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
 app.use(express.static('.'));
 
-// مقداردهی اولیه ابزار جمینی
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+let db;
+const DB_FILE = path.join(__dirname, 'database.sqlite');
 
-// اتصال به دیتابیس MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Connected to MongoDB Atlas successfully!'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+// تابع ذخیره‌سازی امن دیتابیس بدون کرش
+function saveDatabase() {
+    try {
+        if (db) {
+            const data = db.export();
+            const buffer = Buffer.from(data);
+            fs.writeFileSync(DB_FILE, buffer);
+        }
+    } catch (e) {
+        console.error('Database save error:', e);
+    }
+}
 
-// ==========================================
-// ۲. مدل‌های دیتابیس (Database Schemas)
-// ==========================================
-
-// مدل کاربر (تبلیغ‌کننده، ناشر، ادمین)
-const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // در پروژه واقعی باید هش شود
-    role: { type: String, enum: ['advertiser', 'publisher', 'admin'], required: true },
-    balance: { type: Number, default: 0 } // موجودی کیف پول
-});
-const User = mongoose.model('User', userSchema);
-
-// مدل کمپین (مخصوص تبلیغ‌کنندگان)
-const campaignSchema = new mongoose.Schema({
-    advertiserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    title: String,
-    bannerUrl: String,       
-    targetUrl: String,       
-    pricingType: { type: String, enum: ['CPC', 'CPM'], default: 'CPC' }, 
-    bidAmount: { type: Number, default: 1 }, 
-    budget: Number,          
-    spent: { type: Number, default: 0 }, 
-    status: { type: String, default: 'pending' }, // pending (در انتظار تایید ادمین), active, paused, exhausted
-    targetDevice: { type: String, default: 'all' }, 
-    clicks: { type: Number, default: 0 },
-    impressions: { type: Number, default: 0 }, 
-    invalidClicks: { type: Number, default: 0 },
-    fraudLogs: [{
-        ip: String,
-        reason: String,
-        timestamp: { type: Date, default: Date.now }
-    }]
-});
-const Campaign = mongoose.model('Campaign', campaignSchema);
-
-// حافظه‌های موقت امنیتی
+// حافظه موقت لایه ضد تقلب
 const clickVelocityTracker = new Map();
 const browserFingerprintTracker = new Map();
 
-const standardRateLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 15,
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: async (req, res) => {
-        const campaignId = req.params.id;
-        if (campaignId && mongoose.isValidObjectId(campaignId)) {
-            await Campaign.findByIdAndUpdate(campaignId, { 
-                $inc: { invalidClicks: 1 },
-                $push: { fraudLogs: { ip: req.ip, reason: 'Rate limit exceeded (IP Flood)' } }
-            });
-        }
-        res.status(429).json({ error: 'ترافیک مشکوک شناسایی شد.' });
-    }
-});
-
-
-// ==========================================
-// ۳. بخش احراز هویت (Auth API - ثبت‌نام و ورود)
-// ==========================================
-app.post('/api/auth/register', async (req, res) => {
+async function startApp() {
     try {
-        const { username, password, role } = req.body;
-        const newUser = new User({ username, password, role });
-        await newUser.save();
-        res.status(201).json({ success: true, message: 'کاربر با موفقیت ثبت‌نام شد.', userId: newUser._id });
-    } catch (err) {
-        res.status(400).json({ error: 'خطا در ثبت‌نام. ممکن است نام کاربری تکراری باشد.' });
-    }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const user = await User.findOne({ username, password });
-        if (!user) {
-            return res.status(401).json({ error: 'نام کاربری یا رمز عبور اشتباه است.' });
-        }
-        res.json({ success: true, message: 'ورود موفقیت‌آمیز', role: user.role, userId: user._id });
-    } catch (err) {
-        res.status(500).json({ error: 'خطای سرور' });
-    }
-});
-
-
-// ==========================================
-// ۴. بخش پنل تبلیغ‌کننده (Advertiser Panel API)
-// ==========================================
-// ایجاد کمپین جدید توسط تبلیغ‌کننده
-app.post('/api/advertiser/campaigns', async (req, res) => {
-    try {
-        const { advertiserId, title, bannerUrl, targetUrl, pricingType, bidAmount, budget, targetDevice } = req.body;
-        
-        const newCampaign = new Campaign({
-            advertiserId,
-            title,
-            bannerUrl,
-            targetUrl,
-            pricingType,
-            bidAmount,
-            budget,
-            targetDevice,
-            status: 'pending' // نیازمند تایید ادمین
-        });
-
-        await newCampaign.save();
-        res.status(201).json({ success: true, message: 'کمپین با موفقیت ایجاد شد و در انتظار تایید ادمین است.', campaignId: newCampaign._id });
-    } catch (err) {
-        res.status(500).json({ error: 'خطا در ایجاد کمپین.' });
-    }
-});
-
-// مشاهده آمار کمپین‌های یک تبلیغ‌کننده خاص
-app.get('/api/advertiser/campaigns/:advertiserId', async (req, res) => {
-    try {
-        const campaigns = await Campaign.find({ advertiserId: req.params.advertiserId });
-        res.json({ success: true, campaigns });
-    } catch (err) {
-        res.status(500).json({ error: 'خطا در دریافت لیست کمپین‌ها.' });
-    }
-});
-
-
-// ==========================================
-// ۵. بخش هسته مرکزی AD SERVER (نمایش هوشمند بنر برای ناشران)
-// ==========================================
-app.get('/ad/serve', async (req, res) => {
-    try {
-        const clientDevice = req.headers['sec-ch-ua-mobile'] === '?1' ? 'mobile' : 'desktop';
-
-        // فقط کمپین‌های active و دارای بودجه
-        const activeCampaigns = await Campaign.find({ 
-            status: 'active',
-            $expr: { $lt: ['$spent', '$budget'] } 
-        });
-
-        if (!activeCampaigns || activeCampaigns.length === 0) {
-            return res.status(404).json({ error: 'هیچ تبلیغ فعالی وجود ندارد.' });
+        // ۱. مقداردهی اولیه SQLite
+        const SQL = await initSqlJs();
+        if (fs.existsSync(DB_FILE)) {
+            const filebuffer = fs.readFileSync(DB_FILE);
+            db = new SQL.Database(filebuffer);
+        } else {
+            db = new SQL.Database();
         }
 
-        const eligibleCampaigns = activeCampaigns.filter(camp => 
-            camp.targetDevice === 'all' || camp.targetDevice === clientDevice
-        );
+        // ساخت جداول کامل دیتابیس
+        db.run(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL,
+                balance REAL DEFAULT 0
+            );
 
-        const targetPool = eligibleCampaigns.length > 0 ? eligibleCampaigns : activeCampaigns;
+            CREATE TABLE IF NOT EXISTS campaigns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                advertiserId INTEGER,
+                title TEXT,
+                bannerUrl TEXT,
+                targetUrl TEXT,
+                pricingType TEXT DEFAULT 'CPC',
+                bidAmount REAL DEFAULT 1,
+                budget REAL,
+                spent REAL DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                targetDevice TEXT DEFAULT 'all',
+                clicks INTEGER DEFAULT 0,
+                impressions INTEGER DEFAULT 0,
+                invalidClicks INTEGER DEFAULT 0
+            );
 
-        // الگوریتم وزن‌دهی بر اساس قیمت پیشنهادی (Bid)
-        let totalWeight = targetPool.reduce((sum, camp) => sum + (camp.bidAmount || 1), 0);
-        let randomWeight = Math.random() * totalWeight;
-        let selectedCampaign = targetPool[0];
+            CREATE TABLE IF NOT EXISTS fraud_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                campaignId INTEGER,
+                ip TEXT,
+                reason TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        saveDatabase();
 
-        for (let camp of targetPool) {
-            randomWeight -= (camp.bidAmount || 1);
-            if (randomWeight <= 0) {
-                selectedCampaign = camp;
-                break;
+        // ۲. اتصال به هدر هوش مصنوعی Gemini
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy_key');
+
+        // ۳. سیستم Rate Limiter لایه شبکه ضد تقلب
+        const standardRateLimiter = rateLimit({
+            windowMs: 60 * 1000,
+            max: 15,
+            handler: (req, res) => {
+                res.status(429).json({ error: 'ترافیک مشکوک شناسایی شد.' });
             }
-        }
-
-        // افزایش تعداد نمایش و کسر هزینه در صورت CPM
-        selectedCampaign.impressions = (selectedCampaign.impressions || 0) + 1;
-        if (selectedCampaign.pricingType === 'CPM') {
-            selectedCampaign.spent = (selectedCampaign.spent || 0) + (selectedCampaign.bidAmount / 1000);
-        }
-
-        if (selectedCampaign.spent >= selectedCampaign.budget) {
-            selectedCampaign.status = 'exhausted';
-        }
-
-        await selectedCampaign.save();
-
-        res.json({
-            success: true,
-            campaignId: selectedCampaign._id,
-            title: selectedCampaign.title,
-            bannerUrl: selectedCampaign.bannerUrl,
-            targetUrl: selectedCampaign.targetUrl
         });
 
-    } catch (err) {
-        res.status(500).json({ error: 'خطا در سرویس‌دهی تبلیغ.' });
-    }
-});
-
-
-// ==========================================
-// ۶. موتور ثبت کلیک همراه با سیستم ضد تقلب فوق‌پیشرفته
-// ==========================================
-app.post('/campaigns/:id/click', standardRateLimiter, async (req, res) => {
-    try {
-        const campaignId = req.params.id;
-        const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-        const { fingerprint, userAgent, canvasHash } = req.body;
-
-        const campaign = await Campaign.findById(campaignId);
-        if (!campaign) {
-            return res.status(404).json({ error: 'کمپین یافت نشد.' });
-        }
-
-        if (campaign.status !== 'active') {
-            return res.status(400).json({ error: 'کمپین فعال نیست.' });
-        }
-
-        // بررسی ربات‌ها
-        if (!userAgent || /bot|crawl|spider|slurp|headless|selenium|puppeteer/i.test(userAgent)) {
-            await Campaign.findByIdAndUpdate(campaignId, {
-                $inc: { invalidClicks: 1 },
-                $push: { fraudLogs: { ip: clientIp, reason: 'Automated Bot / Headless Browser' } }
-            });
-            return res.status(403).json({ error: 'درخواست غیرمجاز.' });
-        }
-
-        // بررسی سرعت کلیک
-        const now = Date.now();
-        if (clickVelocityTracker.has(clientIp)) {
-            const lastClickTime = clickVelocityTracker.get(clientIp);
-            if (now - lastClickTime < 2000) {
-                await Campaign.findByIdAndUpdate(campaignId, {
-                    $inc: { invalidClicks: 1 },
-                    $push: { fraudLogs: { ip: clientIp, reason: 'Unnatural click speed' } }
-                });
-                return res.status(429).json({ error: 'کلیک‌های متوالی سریع مجاز نیست.' });
+        // ==========================================
+        // ۴. احراز هویت (Auth API)
+        // ==========================================
+        app.post('/api/auth/register', (req, res) => {
+            try {
+                const { username, password, role } = req.body;
+                db.run(`INSERT INTO users (username, password, role) VALUES (?, ?, ?)`, [username, password, role]);
+                saveDatabase();
+                res.status(201).json({ success: true, message: 'ثبت‌نام با موفقیت انجام شد.' });
+            } catch (err) {
+                res.status(400).json({ error: 'نام کاربری تکراری است.' });
             }
-        }
-        clickVelocityTracker.set(clientIp, now);
+        });
 
-        // بررسی اثر انگشت مرورگر
-        if (fingerprint || canvasHash) {
-            const uniqueKey = `${campaignId}_${fingerprint || canvasHash}`;
-            if (browserFingerprintTracker.has(uniqueKey)) {
-                const lastFingerprintTime = browserFingerprintTracker.get(uniqueKey);
-                if (now - lastFingerprintTime < 15 * 60 * 1000) {
-                    await Campaign.findByIdAndUpdate(campaignId, {
-                        $inc: { invalidClicks: 1 },
-                        $push: { fraudLogs: { ip: clientIp, reason: 'Duplicate click from same fingerprint' } }
-                    });
-                    return res.status(400).json({ error: 'شما قبلاً روی این کمپین کلیک کرده‌اید.' });
+        // ==========================================
+        // ۵. پنل تبلیغ‌کننده (Advertiser Panel API)
+        // ==========================================
+        app.post('/api/advertiser/campaigns', (req, res) => {
+            try {
+                const { advertiserId, title, bannerUrl, targetUrl, pricingType, bidAmount, budget, targetDevice } = req.body;
+                db.run(
+                    `INSERT INTO campaigns (advertiserId, title, bannerUrl, targetUrl, pricingType, bidAmount, budget, targetDevice, status) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+                    [advertiserId, title, bannerUrl, targetUrl, pricingType || 'CPC', bidAmount || 1, budget || 100, targetDevice || 'all']
+                );
+                saveDatabase();
+                res.status(201).json({ success: true, message: 'کمپین ایجاد شد و در انتظار تایید است.' });
+            } catch (err) {
+                res.status(500).json({ error: 'خطا در ایجاد کمپین.' });
+            }
+        });
+
+        // ==========================================
+        // ۶. هسته هوشمند AD SERVER (وزن‌دهی Bidding و سرو تبلیغ)
+        // ==========================================
+        app.get('/ad/serve', (req, res) => {
+            try {
+                const clientDevice = req.headers['sec-ch-ua-mobile'] === '?1' ? 'mobile' : 'desktop';
+
+                const stmt = db.prepare(`SELECT * FROM campaigns WHERE status = 'active' AND spent < budget`);
+                const activeCampaigns = [];
+                while (stmt.step()) activeCampaigns.push(stmt.getAsObject());
+                stmt.free();
+
+                if (!activeCampaigns.length) {
+                    return res.status(200).json({ success: false, message: 'هیچ تبلیغ فعالی وجود ندارد.' });
                 }
+
+                // ۱. هدف‌گیری دستگاه (Device Targeting)
+                const eligibleCampaigns = activeCampaigns.filter(camp => 
+                    camp.targetDevice === 'all' || camp.targetDevice === clientDevice
+                );
+                const targetPool = eligibleCampaigns.length > 0 ? eligibleCampaigns : activeCampaigns;
+
+                // ۲. الگوریتم وزن‌دهی انتخابی بر اساس Bidding
+                let totalWeight = targetPool.reduce((sum, camp) => sum + (camp.bidAmount || 1), 0);
+                let randomWeight = Math.random() * totalWeight;
+                let selectedCampaign = targetPool[0];
+
+                for (let camp of targetPool) {
+                    randomWeight -= (camp.bidAmount || 1);
+                    if (randomWeight <= 0) {
+                        selectedCampaign = camp;
+                        break;
+                    }
+                }
+
+                // ۳. محاسبه نمایش و هزینه CPM
+                let newImpressions = (selectedCampaign.impressions || 0) + 1;
+                let newSpent = selectedCampaign.spent || 0;
+
+                if (selectedCampaign.pricingType === 'CPM') {
+                    newSpent += (selectedCampaign.bidAmount / 1000);
+                }
+
+                let newStatus = newSpent >= selectedCampaign.budget ? 'exhausted' : selectedCampaign.status;
+
+                db.run(
+                    `UPDATE campaigns SET impressions = ?, spent = ?, status = ? WHERE id = ?`,
+                    [newImpressions, newSpent, newStatus, selectedCampaign.id]
+                );
+                saveDatabase();
+
+                res.json({
+                    success: true,
+                    campaignId: selectedCampaign.id,
+                    title: selectedCampaign.title,
+                    bannerUrl: selectedCampaign.bannerUrl,
+                    targetUrl: selectedCampaign.targetUrl
+                });
+            } catch (err) {
+                res.status(500).json({ error: 'خطا در سرویس‌دهی تبلیغ.' });
             }
-            browserFingerprintTracker.set(uniqueKey, now);
-        }
+        });
 
-        // ثبت کلیک معتبر و کسر هزینه در صورت CPC
-        campaign.clicks = (campaign.clicks || 0) + 1;
-        if (campaign.pricingType === 'CPC') {
-            campaign.spent = (campaign.spent || 0) + (campaign.bidAmount || 1);
-        }
+        // ==========================================
+        // ۷. ثبت کلیک + لایه‌های ۴ گانه ضد تقلب
+        // ==========================================
+        app.post('/campaigns/:id/click', standardRateLimiter, (req, res) => {
+            try {
+                const campaignId = req.params.id;
+                const clientIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+                const { fingerprint, userAgent } = req.body;
+                const now = Date.now();
 
-        if (campaign.spent >= campaign.budget) {
-            campaign.status = 'exhausted';
-        }
+                const stmt = db.prepare(`SELECT * FROM campaigns WHERE id = ?`);
+                stmt.bind([campaignId]);
+                if (!stmt.step()) {
+                    stmt.free();
+                    return res.status(404).json({ error: 'کمپین یافت نشد.' });
+                }
+                const campaign = stmt.getAsObject();
+                stmt.free();
 
-        await campaign.save();
+                if (campaign.status !== 'active') {
+                    return res.status(400).json({ error: 'کمپین فعال نیست.' });
+                }
 
-        res.json({ 
-            success: true, 
-            message: 'کلیک معتبر تایید شد.', 
-            targetUrl: campaign.targetUrl 
+                // لایه ۱: فیلتر ربات‌ها و مرورگرهای Headless
+                if (!userAgent || /bot|crawl|spider|slurp|headless|selenium|puppeteer/i.test(userAgent)) {
+                    db.run(`UPDATE campaigns SET invalidClicks = invalidClicks + 1 WHERE id = ?`, [campaignId]);
+                    db.run(`INSERT INTO fraud_logs (campaignId, ip, reason) VALUES (?, ?, ?)`, [campaignId, clientIp, 'Automated Bot Detected']);
+                    saveDatabase();
+                    return res.status(403).json({ error: 'درخواست غیرمجاز شناسایی شد.' });
+                }
+
+                // لایه ۲: سنجش سرعت کلیک (Velocity Check)
+                const ipKey = `${campaignId}_${clientIp}`;
+                if (clickVelocityTracker.has(ipKey)) {
+                    const lastClickTime = clickVelocityTracker.get(ipKey);
+                    if (now - lastClickTime < 10000) { // کلیک زیر ۱۰ ثانیه
+                        db.run(`UPDATE campaigns SET invalidClicks = invalidClicks + 1 WHERE id = ?`, [campaignId]);
+                        db.run(`INSERT INTO fraud_logs (campaignId, ip, reason) VALUES (?, ?, ?)`, [campaignId, clientIp, 'High velocity click']);
+                        saveDatabase();
+                        return res.status(429).json({ error: 'کلیک‌های متوالی سریع مجاز نیست.' });
+                    }
+                }
+                clickVelocityTracker.set(ipKey, now);
+
+                // لایه ۳: شناسایی اثر انگشت مرورگر (Fingerprint Check)
+                if (fingerprint) {
+                    const fpKey = `${campaignId}_${fingerprint}`;
+                    if (browserFingerprintTracker.has(fpKey)) {
+                        db.run(`UPDATE campaigns SET invalidClicks = invalidClicks + 1 WHERE id = ?`, [campaignId]);
+                        db.run(`INSERT INTO fraud_logs (campaignId, ip, reason) VALUES (?, ?, ?)`, [campaignId, clientIp, 'Duplicate click from same fingerprint']);
+                        saveDatabase();
+                        return res.status(400).json({ error: 'شما قبلاً روی این کمپین کلیک کرده‌اید.' });
+                    }
+                    browserFingerprintTracker.set(fpKey, true);
+                }
+
+                // لایه ۴: ثبت کلیک معتبر و محاسبه CPC
+                let newClicks = (campaign.clicks || 0) + 1;
+                let newSpent = campaign.spent || 0;
+
+                if (campaign.pricingType === 'CPC') {
+                    newSpent += (campaign.bidAmount || 1);
+                }
+
+                let newStatus = newSpent >= campaign.budget ? 'exhausted' : campaign.status;
+
+                db.run(
+                    `UPDATE campaigns SET clicks = ?, spent = ?, status = ? WHERE id = ?`,
+                    [newClicks, newSpent, newStatus, campaignId]
+                );
+                saveDatabase();
+
+                res.json({ success: true, message: 'کلیک معتبر تایید شد.', targetUrl: campaign.targetUrl });
+            } catch (err) {
+                res.status(500).json({ error: 'خطای سرور.' });
+            }
+        });
+
+        // ==========================================
+        // ۸. پنل مدیریت و لاگ‌های تقلب (Admin Panel)
+        // ==========================================
+        app.post('/api/admin/campaigns/:id/status', (req, res) => {
+            try {
+                const { status } = req.body;
+                db.run(`UPDATE campaigns SET status = ? WHERE id = ?`, [status, req.params.id]);
+                saveDatabase();
+                res.json({ success: true, message: `وضعیت کمپین به ${status} تغییر یافت.` });
+            } catch (err) {
+                res.status(500).json({ error: 'خطا در به‌روزرسانی وضعیت کمپین.' });
+            }
+        });
+
+        app.get('/api/admin/fraud-logs', (req, res) => {
+            try {
+                const stmt = db.prepare(`SELECT * FROM fraud_logs ORDER BY timestamp DESC LIMIT 50`);
+                const logs = [];
+                while (stmt.step()) logs.push(stmt.getAsObject());
+                stmt.free();
+                res.json({ success: true, logs });
+            } catch (err) {
+                res.status(500).json({ error: 'خطا در دریافت لاگ‌ها.' });
+            }
+        });
+
+        // ==========================================
+        // ۹. هوش مصنوعی: تولید متن (Gemini) و بنر (SVG Generator)
+        // ==========================================
+        app.post('/api/ai/generate-text', async (req, res) => {
+            try {
+                const { topic, tone } = req.body;
+                if (!topic) return res.status(400).json({ error: 'موضوع تبلیغ را وارد کنید.' });
+
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const prompt = `یک متن تبلیغاتی کوتاه، جذاب و حداکثر ۱۰ کلمه‌ای برای موضوع "${topic}" با لحن "${tone || 'جذاب'}" بنویس. فقط خود متن را بفرست.`;
+                
+                const result = await model.generateContent(prompt);
+                const response = await result.response;
+                res.json({ success: true, text: response.text().trim() });
+            } catch (error) {
+                res.status(500).json({ error: 'خطا در ارتباط با هوش مصنوعی Gemini.' });
+            }
+        });
+
+        app.post('/api/ai/generate-banner', (req, res) => {
+            try {
+                const { title, bgColor, textColor } = req.body;
+                const bg = bgColor || '#2563eb';
+                const textCol = textColor || '#ffffff';
+                const text = title || 'عنوان تبلیغ شما';
+
+                const svg = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="300" height="250" viewBox="0 0 300 250">
+                    <rect width="100%" height="100%" fill="${bg}" rx="12"/>
+                    <circle cx="150" cy="125" r="100" fill="white" opacity="0.1"/>
+                    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="${textCol}" font-family="Tahoma, Arial" font-size="18" font-weight="bold">
+                        ${text}
+                    </text>
+                </svg>`.trim();
+
+                const base64Svg = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+                res.json({ success: true, bannerUrl: base64Svg });
+            } catch (err) {
+                res.status(500).json({ error: 'خطا در ساخت بنر.' });
+            }
+        });
+
+        // ۱۰. راه‌اندازی سرور
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => {
+            console.log(`Ad Network Server is running on http://localhost:${PORT}`);
         });
 
     } catch (err) {
-        res.status(500).json({ error: 'خطای سرور.' });
+        console.error('Error starting server:', err);
     }
-});
+}
 
+startApp();
 
-// ==========================================
-// ۷. بخش پنل ادمین (Admin Panel API)
-// ==========================================
-// مشاهده تمام کمپین‌های در انتظار تایید
-app.get('/api/admin/campaigns/pending', async (req, res) => {
-    try {
-        const pendingCampaigns = await Campaign.find({ status: 'pending' });
-        res.json({ success: true, pendingCampaigns });
-    } catch (err) {
-        res.status(500).json({ error: 'خطا در دریافت کمپین‌ها.' });
-    }
-});
-
-// تایید یا رد کمپین توسط ادمین
-app.post('/api/admin/campaigns/:id/status', async (req, res) => {
-    try {
-        const { status } = req.body; // 'active' یا 'rejected'
-        const campaign = await Campaign.findByIdAndUpdate(req.params.id, { status }, { new: true });
-        res.json({ success: true, message: `وضعیت کمپین به ${status} تغییر یافت.`, campaign });
-    } catch (err) {
-        res.status(500).json({ error: 'خطا در به‌روزرسانی وضعیت کمپین.' });
-    }
-});
-// مسیر اصلاح شده و هماهنگ با فرانت‌اند
-app.post('/api/generate-campaign', async (req, res) => {
-  try {
-    const { title, tone, style } = req.body;
-
-    if (!title) {
-      return res.status(400).json({ error: 'لطفاً عنوان یا موضوع کمپین را وارد کنید.' });
-    }
-
-    // استفاده از مدل flash که سریع است
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `تو یک متخصص تبلیغات آنلاین هستی. 
-    یک متن تبلیغاتی جذاب برای "${title}" بنویس.
-    لحن متن باید "${tone}" باشد و با سبک گرافیکی "${style}" هماهنگ باشد.
-    فقط متن تبلیغاتی را برگردان.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const generatedText = response.text();
-
-    res.json({ success: true, text: generatedText });
-
-  } catch (error) {
-    console.error('Gemini API Error:', error);
-    res.status(500).json({ error: 'خطا در هوش مصنوعی جمینی.' });
-  }
-});
-// راه‌اندازی سرور روی پورت ۳۰۰۰
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Full Ad Network Platform Server is running on port ${PORT}`);
-});
