@@ -10,7 +10,7 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 let db;
 const DB_FILE = path.join(__dirname, 'database.sqlite');
@@ -347,71 +347,124 @@ async function startApp() {
             }
         });
 
-        app.post('/api/ai/generate-smart-banner', async (req, res) => {
-            try {
-                const { title, subtitle, theme, size } = req.body;
-                
-                let width = 300, height = 250;
-                if (size === '728x90') { width = 728; height = 90; }
-                else if (size === '400x400') { width = 400; height = 400; }
-                else if (size === '1200x628') { width = 1200; height = 628; }
+        app.post('/api/generate-smart-banner', (req, res) => {
+    try {
+        const { title, subtitle, theme, size } = req.body;
+        
+        // تعیین ابعاد بنر بر اساس انتخاب کاربر
+        let width = 300, height = 250;
+        if (size === '728x90') { width = 728; height = 90; }
+        else if (size === '400x400') { width = 400; height = 400; }
+        else if (size === '300x250') { width = 300; height = 250; }
 
-                // تعیین پالت‌های رنگی جذاب بر اساس تم انتخابی مشتری
-                let col1 = '#2563eb', col2 = '#7c3aed', accentCol = '#f59e0b';
-                if (theme === 'dark-neon') { col1 = '#0f172a'; col2 = '#1e1b4b'; accentCol = '#38bdf8'; }
-                else if (theme === 'sunset') { col1 = '#f97316'; col2 = '#db2777'; accentCol = '#fde047'; }
-                else if (theme === 'emerald') { col1 = '#065f46'; col2 = '#047857'; accentCol = '#34d399'; }
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
 
-                const svg = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-                    <defs>
-                        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="${col1}" />
-                            <stop offset="100%" stop-color="${col2}" />
-                        </linearGradient>
-                        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
-                        </filter>
-                    </defs>
-                    
-                    <rect width="100%" height="100%" fill="url(#bgGrad)" rx="20"/>
-                    
-                    <circle cx="${width * 0.9}" cy="${height * 0.15}" r="${width * 0.25}" fill="${accentCol}" opacity="0.15"/>
-                    <circle cx="${width * 0.1}" cy="${height * 0.85}" r="${width * 0.3}" fill="#ffffff" opacity="0.05"/>
-                    <path d="M 0,${height * 0.7} Q ${width * 0.5},${height} ${width},${height * 0.6} L ${width},${height} L 0,${height} Z" fill="#000000" opacity="0.15"/>
+        // ۱. رنگ‌بندی پس‌زمینه بر اساس تم انتخابی
+        let bgGradient = ctx.createLinearGradient(0, 0, width, height);
+        if (theme === 'dark-neon') {
+            bgGradient.addColorStop(0, '#0a0a0a');
+            bgGradient.addColorStop(1, '#1a1a2e');
+        } else if (theme === 'sunset') {
+            bgGradient.addColorStop(0, '#ff416c');
+            bgGradient.addColorStop(1, '#ff4b2b');
+        } else if (theme === 'emerald') {
+            bgGradient.addColorStop(0, '#065f46');
+            bgGradient.addColorStop(1, '#047857');
+        } else if (theme === 'gold-black') {
+            bgGradient.addColorStop(0, '#000000');
+            bgGradient.addColorStop(1, '#78350f');
+        } else {
+            bgGradient.addColorStop(0, '#3b82f6');
+            bgGradient.addColorStop(1, '#1d4ed8');
+        }
 
-                    <text x="50%" y="${subtitle ? '40%' : '50%'}" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Tahoma, Arial, sans-serif" font-size="${width > 600 ? 36 : (width > 350 ? 22 : 18)}" font-weight="bold" filter="url(#shadow)">
-                        ${title || 'بنر تبلیغاتی هوشمند'}
-                    </text>
-                    
-                    ${subtitle ? `
-                    <text x="50%" y="62%" dominant-baseline="middle" text-anchor="middle" fill="${accentCol}" font-family="Tahoma, Arial, sans-serif" font-size="${width > 600 ? 20 : (width > 350 ? 14 : 11)}" font-weight="600">
-                        ${subtitle}
-                    </text>` : ''}
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, width, height);
 
-                    <g transform="translate(${width / 2 - 70}, ${height - 55})">
-                        <rect width="140" height="36" rx="18" fill="${accentCol}" filter="url(#shadow)"/>
-                        <text x="70" y="23" dominant-baseline="middle" text-anchor="middle" fill="#0f172a" font-family="Tahoma, Arial, sans-serif" font-size="13" font-weight="bold">
-                            همین حالا خرید کنید
-                        </text>
-                    </g>
-                </svg>`.trim();
+        // ۲. رسم المان‌های گرافیکی و اشکال هندسی مدرن (حباب‌ها و خطوط نئونی)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.beginPath();
+        ctx.arc(width * 0.8, height * 0.2, width * 0.3, 0, Math.PI * 2);
+        ctx.fill();
 
-                const bannerUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-                res.json({ success: true, bannerUrl });
-            } catch (err) {
-                res.status(500).json({ success: false, error: 'خطا در ساخت بنر هوشمند.' });
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.beginPath();
+        ctx.arc(width * 0.2, height * 0.8, width * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        // ۳. رسم تگ گرافیکی تخفیف / نشانگر مدرن در بالا
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.roundRect(20, 15, 80, 22, 11);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px Arial';
+        ctx.fillText('★ ویژه هوش مصنوعی', 26, 30);
+
+        // ۴. رسم ستاره‌های امتیازدهی
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '14px Arial';
+        ctx.fillText('★★★★★', width - 85, 30);
+
+        // ۵. درج متن اصلی (تیتر)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'center';
+        
+        // شکستن خطوط تیتر در صورت طولانی بودن
+        let maxTextWidth = width - 40;
+        let words = (title || 'تیتر بنر').split(' ');
+        let line = '';
+        let currentY = height * 0.45;
+
+        for (let n = 0; n < words.length; n++) {
+            let testLine = line + words[n] + ' ';
+            let metrics = ctx.measureText(testLine);
+            if (metrics.width > maxTextWidth && n > 0) {
+                ctx.fillText(line, width / 2, currentY);
+                line = words[n] + ' ';
+                currentY += 24;
+            } else {
+                line = testLine;
             }
-        });
+        }
+        ctx.fillText(line, width / 2, currentY);
 
-        const PORT = process.env.PORT || 3000;
-        app.listen(PORT, () => {
-            console.log(`Smart AI Ad Network & Banner Studio running on http://localhost:${PORT}`);
-        });
+        // ۶. درج زیرنویس
+        if (subtitle) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '13px Arial';
+            ctx.fillText(subtitle, width / 2, currentY + 28);
+        }
 
-    } catch (err) {
-        console.error('Server error:', err);
-    }
+        // ۷. رسم دکمه فراخوان گرافیکی (CTA Button) در پایین بنر
+        let btnWidth = 130, btnHeight = 30;
+        let btnX = (width - btnWidth) / 2;
+        let btnY = height - 42;
+
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.roundRect(btnX, btnY, btnWidth, btnHeight, 15);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText('همین حالا کلیک کنید 🚀', width / 2, btnY + 20);
+
+        try {
+    const buffer = canvas.toDataURL('image/png');
+    res.json({ success: true, bannerUrl: buffer });
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
 }
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+    console.log(`Smart AI Ad Network & Banner Studio running on http://localhost:${PORT}`);
+});
 
 startApp();
+

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استودیوی بنر هوشمند</title>
+    <style>
+        body { font-family: 'Tahoma', Arial, sans-serif; background-color: #f0f9ff; color: #111827; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        h1 { color: #2563eb; margin-bottom: 20px; font-size: 22px; text-align: center; }
+        .control-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 12px; }
+        label { font-weight: 600; font-size: 14px; }
+        input, select { padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
+        .button-group { display: flex; gap: 10px; margin-top: 10px; }
+        button { padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; flex: 1; }
+        button.primary { background-color: #2563eb; color: white; }
+        button.secondary { background-color: #f59e0b; color: #111827; }
+        #banner-container { margin-top: 20px; text-align: center; border: 1px solid #e5e7eb; border-radius: 12px; padding: 15px; background: white; width: 100%; max-width: 500px; box-sizing: border-box; }
+        #result-image { max-width: 100%; height: auto; border-radius: 8px; }
+       :root {
+    --primary: #6366f1;
+    --accent: #22d3ee;
+    --bg: #0f172a;
+}
+
+      #banner-container {
+    width: 100%;
+    max-width: 500px;
+    height: 250px;
+    background: linear-gradient(135deg, var(--bg), #1e293b);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+#banner-container h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+    background: linear-gradient(to right, #fff, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#banner-container p {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+button.primary {
+    background: linear-gradient(45deg, var(--primary), var(--accent));
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    border-radius: 50px;
+    font-weight: 600;
+}
+</style>
+</head>
+<body>
+
+    <h1>🎨 استودیوی بنر هوشمند AI</h1>
+
+    <div class="control-panel">
+        <label>موضوع بنر:</label>
+        <input type="text" id="topic" value="پول">
+
+        <label>تیتر اصلی:</label>
+        <input type="text" id="title" value="پولسازترین شغل">
+
+        <label>زیرنویس (اختیاری):</label>
+        <input type="text" id="subtitle" value="با ما همراه باشید">
+
+        <label>تم رنگی:</label>
+        <select id="theme">
+            <option value="default">آبی و بنفش</option>
+            <option value="dark-neon">شب تیره (نئون)</option>
+            <option value="sunset">غروب</option>
+            <option value="emerald">زمردی</option>
+            <option value="gold-black" selected>طلایی و سیاه</option>
+        </select>
+
+        <label>اندازه بنر:</label>
+        <select id="size">
+            <option value="300x250" selected>مستطیل متوسط (300x250)</option>
+            <option value="728x90">لیدربورد (728x90)</option>
+            <option value="400x400">مربع بزرگ (400x400)</option>
+        </select>
+
+        <div class="button-group">
+            <button class="secondary" onclick="generateGroqText()">تولید متن با AI ✨</button>
+            <button class="primary" onclick="generateSmartBanner()">ساخت بنر نهایی 🚀</button>
+        </div>
+    </div>
+
+    <div id="banner-container">
+        <p id="placeholder-text">پیش‌نمایش بنر در اینجا ظاهر می‌شود.</p>
+        <img id="result-image" alt="بنر هوشمند" style="display: none;">
+    </div>
+
+    <script>
+        async function generateGroqText() {
+            const topic = document.getElementById('topic').value;
+            try {
+                const res = await fetch('/api/ai/generate-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, tone: 'attractive' })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('title').value = data.ad;
+                } else {
+                    alert('خطا: ' + data.error);
+                }
+            } catch (err) {
+                alert('خطا در ارتباط با سرور');
+            }
+        }
+
+        async function generateSmartBanner() {
+            const title = document.getElementById('title').value;
+            const subtitle = document.getElementById('subtitle').value;
+            const theme = document.getElementById('theme').value;
+            const size = document.getElementById('size').value;
+
+            try {
+                const res = await fetch('/api/ai/generate-smart-banner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, subtitle, theme, size })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const img = document.getElementById('result-image');
+                    const placeholder = document.getElementById('placeholder-text');
+                    img.src = data.bannerUrl;
+                    img.style.display = 'block';
+                    placeholder.style.display = 'none';
+                } else {
+                    alert('خطا در ساخت بنر');
+                }
+            } catch (err) {
+                alert('خطا در ارتباط با سرور');
+            }
+        }
+    </script>
+</body>
+</html>
+
