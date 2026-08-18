@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استودیوی هوش مصنوعی بنرساز فوق پیشرفته</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style> body { font-family: 'Vazirmatn', sans-serif; } </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-4xl mx-auto space-y-8">
+        
+        <header class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl text-center">
+            <span class="bg-purple-500/10 text-purple-400 text-xs font-semibold px-3 py-1 rounded-full border border-purple-500/20">هوش مصنوعی نسل جدید</span>
+            <h1 class="text-2xl md:text-3xl font-bold mt-3 text-white">استودیوی بنرساز فوق پیشرفته هوشمند</h1>
+            <p class="text-slate-400 text-sm mt-2">طراحی بنرهای گرافیکی مشتری‌پسند با پالت‌های رنگی حرفه‌ای، دکمه CTA و خروجی آنی</p>
+        </header>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-white mb-4">✨ تولید متن تبلیغاتی با هوش مصنوعی</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">موضوع یا محصول:</label>
+                    <input type="text" id="topicInput" placeholder="مثلاً: حراج کفش ورزشی چرم" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">لحن تبلیغ:</label>
+                    <select id="toneInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500">
+                        <option value="جذاب و ترغیب‌کننده">جذاب و ترغیب‌کننده</option>
+                        <option value="لوکس و رسمی">لوکس و رسمی</option>
+                        <option value="هیجانی و پرانرژی">هیجانی و پرانرژی</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="generateAiText()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-purple-600/20 cursor-pointer">دریافت پیشنهاد متن هوشمند</button>
+            <div id="aiResult" class="mt-4 hidden bg-slate-950 border border-slate-800 rounded-xl p-4 text-emerald-400 text-sm leading-relaxed"></div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-white mb-4">🎨 طراحی بنر گرافیکی هوشمند</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">عنوان اصلی بنر:</label>
+                    <input type="text" id="bannerTitle" value="تخفیف ویژه زمستانه ❄️" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">شعار یا زیرنویس:</label>
+                    <input type="text" id="bannerSubtitle" value="تا ۶۰٪ تخفیف روی تمامی سفارش‌ها" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">تم رنگی گرافیکی:</label>
+                    <select id="bannerTheme" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500">
+                        <option value="modern-blue">آبی مدرن و شرکتی (Modern Blue)</option>
+                        <option value="dark-neon">تاریک و نئونی (Dark Neon)</option>
+                        <option value="sunset">غروب آفتاب پرانرژی (Sunset)</option>
+                        <option value="emerald">سبز امراوندی لوکس (Emerald)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">ابعاد استاندارد بنر:</label>
+                    <select id="bannerSize" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500">
+                        <option value="300x250">مستطیلی متوسط (300x250)</option>
+                        <option value="728x90">بنر هدر سایت (728x90)</option>
+                        <option value="400x400">مربعی شبکه‌های اجتماعی (400x400)</option>
+                        <option value="1200x628">بنر بزرگ کمپین (1200x628)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="generateSmartBanner()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-emerald-600/20 cursor-pointer mb-6">تولید بنر گرافیکی هوشمند</button>
+
+            <div class="border-t border-slate-800 pt-6 flex flex-col items-center">
+                <div id="bannerPreview" class="flex justify-center mb-4 overflow-x-auto max-w-full"></div>
+                <a id="downloadBtn" href="#" download="smart-ai-banner.svg" class="hidden bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2.5 rounded-xl transition shadow-lg shadow-blue-600/20 text-sm text-center">📥 دانلود مستقیم بنر با کیفیت بالا</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        async function generateAiText() {
+            const topic = document.getElementById('topicInput').value;
+            const tone = document.getElementById('toneInput').value;
+            const resultBox = document.getElementById('aiResult');
+
+            if (!topic) { alert('لطفاً موضوع را وارد کنید.'); return; }
+
+            resultBox.innerText = 'در حال پردازش با هوش مصنوعی...';
+            resultBox.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/ai/generate-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, tone })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    resultBox.innerText = data.aiResponse;
+                } else {
+                    resultBox.innerText = 'خطا در تولید متن.';
+                }
+            } catch (err) {
+                resultBox.innerText = 'خطا در ارتباط با سرور.';
+            }
+        }
+
+        async function generateSmartBanner() {
+            const title = document.getElementById('bannerTitle').value;
+            const subtitle = document.getElementById('bannerSubtitle').value;
+            const theme = document.getElementById('bannerTheme').value;
+            const size = document.getElementById('bannerSize').value;
+
+            try {
+                const res = await fetch('/api/ai/generate-smart-banner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, subtitle, theme, size })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const preview = document.getElementById('bannerPreview');
+                    preview.innerHTML = `<img src="${data.bannerUrl}" class="rounded-xl border border-slate-800 shadow-2xl max-w-full">`;
+
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.href = data.bannerUrl;
+                    downloadBtn.classList.remove('hidden');
+                }
+            } catch (err) {
+                alert('خطا در ارتباط با سرور برای ساخت بنر.');
+            }
+        }
+
+        window.onload = generateSmartBanner;
+    </script>
+</body>
+</html>
+
